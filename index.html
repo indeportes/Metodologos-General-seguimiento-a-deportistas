@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoreo Selecciones Cundinamarca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--bg:#f1f5f9;--surface:#fff;--ink:#14263a;--muted:#5a6b7d;--line:#d6dee7;
+--brand:#1c6ea4;--celeste:#6cb4e4;--gold:#d8a01d;--red:#c8102e;
+--ok:#14608f;--ok-bg:#dcecf8;--warn:#7a5200;--warn-bg:#fbefc9;--bad:#b00f28;--bad-bg:#fbe1e5}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a26;--surface:#172637;--ink:#e8eff6;--muted:#9fb2c5;--line:#2a3d52;
+--brand:#6cb4e4;--gold:#f0bb3d;--red:#ff6b81;--ok:#8cc8f0;--ok-bg:#17354d;--warn:#f0bb3d;--warn-bg:#3d3210;--bad:#ff8a9a;--bad-bg:#4a1d27}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,system-ui,sans-serif}
+h1,h2,.num{font-family:"Barlow Semi Condensed",sans-serif}
+.stripe{height:8px;background:linear-gradient(90deg,var(--celeste) 0 33.34%,var(--gold) 33.34% 66.67%,var(--red) 66.67%)}
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:16px 28px;display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center}
+header .logos{display:flex;gap:12px;flex-wrap:wrap}
+header .title{flex:1;min-width:260px}
+header h1{margin:0;font-size:28px;color:var(--brand);letter-spacing:.2px;line-height:1.1}
+header p{margin:3px 0 0;color:var(--muted)}
+#status{font-size:13px;color:var(--muted);text-align:right}
+button{font:inherit;cursor:pointer;border:1px solid var(--brand);background:transparent;color:var(--brand);padding:5px 12px;border-radius:6px;margin-left:8px}
+button:hover{background:var(--brand);color:var(--surface)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.logo{height:60px;min-width:130px;border:1.5px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 10px;text-align:center;font-size:12px;line-height:1.2;color:var(--muted)}
+.logo.has-img{border:1px solid var(--line);background:#fff;padding:4px 8px}
+.logo img{max-height:50px;max-width:190px;display:block}
+main{max-width:1280px;margin:0 auto;padding:20px 20px 24px}
+.filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.filters label{display:flex;flex-direction:column;font-size:13px;color:var(--muted);gap:3px}
+select,input[type=date],input[type=search]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);min-width:140px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:var(--surface);border-left:5px solid var(--celeste);padding:12px 16px;border-radius:4px}
+.kpi:nth-child(2){border-color:var(--gold)}.kpi:nth-child(3){border-color:var(--red)}.kpi:nth-child(4){border-color:var(--brand)}.kpi:nth-child(5){border-color:var(--gold)}
+.kpi span{display:block;color:var(--muted);font-size:13px}
+.kpi b{font-family:"Barlow Semi Condensed";font-size:30px;line-height:1.15;font-weight:600;overflow-wrap:anywhere;color:var(--brand)}
+.kpi b.sm{font-size:20px}
+.panel{background:var(--surface);border-radius:6px;padding:16px;margin-bottom:18px;border:1px solid var(--line);border-top:3px solid var(--celeste)}
+.panel h2{margin:0 0 10px;font-size:19px;font-weight:600;color:var(--brand)}
+.tablewrap{overflow-x:auto;max-height:560px}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:13px;cursor:pointer;position:sticky;top:0;background:var(--surface);z-index:1}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td.obs{white-space:normal;min-width:220px;max-width:380px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:600}
+.OPTIMO{background:var(--ok-bg);color:var(--ok)}.ALERTA{background:var(--warn-bg);color:var(--warn)}.PRECAUCION{background:var(--bad-bg);color:var(--bad)}
+.chip{display:inline-block;padding:1px 9px;border-radius:99px;background:var(--ok-bg);color:var(--ok);font-size:13px;font-weight:600}
+tr.first td{border-top:2px solid var(--line)}
+tr.tot td{background:var(--bg);font-weight:600;color:var(--brand)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;margin-bottom:18px}
+.grid3 .panel{margin:0}
+.chartbox{position:relative;height:260px}
+.note{font-size:13px;color:var(--muted);margin:10px 0 0}
+.tools{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tools label{display:flex;gap:6px;align-items:center;font-size:14px}
+#msg{display:none;background:var(--bad-bg);color:var(--bad);padding:14px 16px;border-radius:6px;margin-bottom:18px}
+.nota{font-size:14px;line-height:1.55}
+.nota h2{margin-bottom:6px}
+.nota ol{margin:0 0 8px;padding-left:22px}
+.nota ul{margin:4px 0 4px;padding-left:20px}
+.nota a{color:var(--brand);overflow-wrap:anywhere}
+.nota .fuente{color:var(--muted);font-size:13px;margin:8px 0 0}
+footer{max-width:1280px;margin:0 auto;padding:0 20px 28px;text-align:center;color:var(--muted);font-size:13px}
+footer .devs{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:center;margin-top:12px}
+footer .devs p{margin:0;font-size:14px;color:var(--ink);max-width:620px;text-align:left}
+
+/* Tarjetas dinámicas */
+.kpi{--c:var(--celeste);position:relative;overflow:hidden;isolation:isolate;transition:transform .25s ease,box-shadow .25s ease;
+ background:linear-gradient(135deg,var(--surface) 55%,color-mix(in srgb,var(--c) 14%,var(--surface)))}
+.kpi::before{content:"";position:absolute;right:-6px;bottom:-10px;width:96px;height:96px;z-index:-1;pointer-events:none;
+ background:var(--img) center/contain no-repeat;opacity:.16;transition:transform .35s ease,opacity .35s ease}
+.kpi::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .25s ease;
+ background:radial-gradient(circle at 85% 90%,color-mix(in srgb,var(--c) 45%,transparent),transparent 65%)}
+.kpi:hover{transform:translateY(-4px);box-shadow:0 0 0 1px var(--c),0 8px 26px color-mix(in srgb,var(--c) 55%,transparent)}
+.kpi:hover::after{opacity:1}
+.kpi:hover::before{opacity:.4;transform:scale(1.12) rotate(-4deg)}
+.kpi:nth-child(1){--c:var(--celeste);--img:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23FFFFFF' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='36' cy='28' r='12'/%3E%3Cpath d='M14 80v-8c0-12 10-20 22-20s22 8 22 20v8'/%3E%3Ccircle cx='72' cy='34' r='9'/%3E%3Cpath d='M66 56c14-2 22 6 22 18v6'/%3E%3C/svg%3E")}
+.kpi:nth-child(2){--c:var(--gold);--img:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23FFFFFF' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='50' cy='56' r='30'/%3E%3Cpath d='M50 56V36M50 56l14 8M40 14h20M50 14v12M78 28l6-6'/%3E%3C/svg%3E")}
+.kpi:nth-child(3){--c:var(--red);--img:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23FFFFFF' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M50 12L90 82H10Z'/%3E%3Cpath d='M50 38v22M50 70v2'/%3E%3C/svg%3E")}
+.kpi:nth-child(4){--c:var(--brand);--img:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23FFFFFF' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M50 10l11 26 28 3-21 19 6 28-24-14-24 14 6-28L11 39l28-3Z'/%3E%3C/svg%3E")}
+.kpi:nth-child(5){--c:var(--gold);--img:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none' stroke='%23FFFFFF' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='24' y='16' width='52' height='70' rx='6'/%3E%3Cpath d='M38 10h24v12H38zM36 44h28M36 58h28M36 72h16'/%3E%3C/svg%3E")}
+@media (prefers-reduced-motion:reduce){.kpi,.kpi::before,.kpi::after{transition:none}.kpi:hover,.kpi:hover::before{transform:none}}
+
+/* Semáforo */
+:root{--ok:#146c2e;--ok-bg:#dcf3e2;--warn:#7a5200;--warn-bg:#fdeea6;--chipbg:#dcecf8}
+@media (prefers-color-scheme:dark){:root{--ok:#7fdc98;--ok-bg:#15381f;--warn:#f5c84a;--warn-bg:#443610;--chipbg:#17354d}}
+.chip{background:var(--chipbg);color:var(--brand)}
+.badge{display:inline-flex;align-items:center;gap:7px}
+.badge::before{content:"";width:10px;height:10px;border-radius:50%;background:currentColor;flex:none}
+.PRECAUCION{background:var(--warn-bg);color:var(--warn)}
+.PELIGRO{background:var(--bad-bg);color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.legend button{margin:0;border-radius:99px;border:2px solid transparent;font-weight:600}
+.legend button.on{border-color:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 25%,transparent)}
+.legend .OPTIMO:hover{background:var(--ok-bg);color:var(--ok);filter:brightness(.93)}
+.legend .PRECAUCION:hover{background:var(--warn-bg);color:var(--warn);filter:brightness(.93)}
+.legend .PELIGRO:hover{background:var(--bad-bg);color:var(--bad);filter:brightness(.93)}
+/* Encabezado */
+.stripe{height:6px}
+header{position:relative;overflow:hidden;gap:18px 32px;padding:26px 32px;border:0;color:#fff;
+ background:radial-gradient(circle at 92% 15%,rgba(216,160,29,.45),transparent 38%),repeating-linear-gradient(115deg,rgba(255,255,255,.06) 0 2px,transparent 2px 28px),linear-gradient(120deg,#0b3a5e,#1c6ea4 60%,#2b8ccf)}
+header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;background:linear-gradient(90deg,var(--celeste) 0 33.34%,var(--gold) 33.34% 66.67%,var(--red) 66.67%)}
+header .title,header .logos,header #status{position:relative;z-index:1}
+header h1{color:#fff;font-size:clamp(30px,4.2vw,50px);text-shadow:0 2px 12px rgba(0,0,0,.35)}
+header p,#status{color:#dcecf8}
+header p{font-size:17px}
+header button{border-color:#fff;color:#fff}header button:hover{background:#fff;color:#0b3a5e}
+.logos{gap:16px}
+.logo{height:96px;min-width:200px;font-size:13px}
+.logo img{max-height:84px;max-width:280px}
+header .logo{border-color:rgba(255,255,255,.6);color:#fff}
+header .logo.has-img{background:#fff;border:0;border-radius:10px}
+/* Tarjetas */
+.kpi{min-height:104px}
+.kpi::before{width:118px;height:118px;background:var(--c);-webkit-mask:var(--img) center/contain no-repeat;mask:var(--img) center/contain no-repeat;opacity:.22}
+.kpi small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+#kc-riesgo{cursor:pointer}#kc-riesgo.on{box-shadow:0 0 0 2px var(--c)}
+/* Interacción */
+#selbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-6px 0 14px}#selbar:empty{display:none}
+.chip2{margin:0;background:var(--gold);color:#14263a;border-color:var(--gold);border-radius:99px;padding:3px 12px;font-weight:600}
+#tbody tr[data-a]{cursor:pointer}
+#tbody tr[data-a]:hover td{background:color-mix(in srgb,var(--celeste) 20%,transparent)}
+#tbody tr.sel td{background:color-mix(in srgb,var(--gold) 30%,transparent);font-weight:600}
+#tbody tr.dim td{opacity:.5}
+
+/* Segmentador: Tipo de sesión (texto completo, con ajuste de línea) */
+.slicer{height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:8px;
+ border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.sl-item{position:relative;isolation:isolate;overflow:hidden;width:100%;margin:0;padding:8px 10px;text-align:left;
+ display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex:none;
+ border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+.sl-item::before{content:"";position:absolute;top:0;bottom:0;left:0;width:var(--w,0%);z-index:-1;
+ background:color-mix(in srgb,var(--brand) 22%,transparent)}
+.sl-item span{white-space:normal;overflow-wrap:anywhere;line-height:1.25;font-weight:500}
+.sl-item b{flex:none;font-family:"Barlow Semi Condensed",sans-serif;font-size:16px;color:var(--brand)}
+.sl-item:hover{background:var(--surface);color:var(--ink);border-color:var(--brand)}
+.sl-item.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 28%,var(--surface));box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 40%,transparent)}
+.sl-item.on::before{background:color-mix(in srgb,var(--gold) 45%,transparent)}
+.sl-item.dim{opacity:.55}
+
+/* Detalle de sesiones: separación entre días y deportistas */
+#det-body td.dia{font-weight:700;color:var(--brand);white-space:nowrap}
+#det-body td.dep{font-weight:600}
+#det-body tr.d1 td{background:color-mix(in srgb,var(--celeste) 16%,transparent)}
+#det-body tr.sub td{border-top:1px dashed var(--line)}
+#det-body tr.newath td{border-top:2px solid var(--celeste)}
+#det-body tr.newday td{border-top:4px solid var(--brand)}
+#det-body tr.newday:first-child td{border-top:0}
+#det-body tr.newday td.dia{box-shadow:inset 4px 0 0 var(--gold)}
+#det-body tr.tot td{background:color-mix(in srgb,var(--brand) 14%,var(--surface));color:var(--brand);font-weight:700;border-top:1px solid var(--line)}
+.filters .clearf{margin:0;align-self:flex-end;padding:7px 14px;font-weight:600;border-color:var(--red);color:var(--red)}
+.filters .clearf:hover{background:var(--red);color:#fff}
+/* Descarga del informe */
+.export{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 16px}
+.export span{font-size:13px;color:var(--muted)}
+.export button{margin:0;background:var(--brand);color:var(--surface);font-weight:600;padding:8px 16px}
+.export button.alt{background:transparent;color:var(--brand)}
+.export button:hover{background:var(--gold);border-color:var(--gold);color:#14263a}
+.export button:disabled{opacity:.6;cursor:wait}
+.conex{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.cx{display:flex;flex-direction:column;gap:1px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--surface);font-size:13px;min-width:170px;max-width:300px}
+.cx b{font-weight:600}.cx small{color:var(--muted);white-space:normal}
+.cx.ok{border-left:5px solid var(--ok)}.cx.ok b{color:var(--ok)}
+.cx.bad{border-left:5px solid var(--bad);background:var(--bad-bg)}.cx.bad b{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="stripe"></div>
+<header>
+  <div class="logos">
+    <div class="logo" data-logo="observatorio"></div>
+    <div class="logo" data-logo="altorendimiento"></div>
+  </div>
+  <div class="title">
+    <h1>Monitoreo selecciones Cundinamarca</h1>
+    <p id="subtitulo">Seguimiento y control del entrenamiento · JDN27 - JDNJ28</p>
+  </div>
+  <div id="status">Cargando datos…<button id="refresh" type="button">Actualizar</button></div>
+</header>
+
+<main>
+  <div id="msg" role="alert"></div>
+  <div class="conex" id="conex" aria-label="Estado de las conexiones a Google Sheets"></div>
+
+  <div class="filters" id="filters">
+    <label>Metodólogo a cargo<select id="f-metodologo"></select></label>
+    <label>Deportista<select id="f-atleta"></select></label>
+    <label>Buscar deportista<input type="search" id="f-buscar" placeholder="Escribe el nombre…" autocomplete="off" list="dl-atletas"><datalist id="dl-atletas"></datalist></label>
+    <label>Deporte<select id="f-deporte"></select></label>
+    <label>Género<select id="f-genero"></select></label>
+    <label>Entrenador<select id="f-entrenador"></select></label>
+    <label>Plan Estrellas<select id="f-plan"></select></label>
+    <label>Desde<input type="date" id="f-desde"></label>
+    <label>Hasta<input type="date" id="f-hasta"></label>
+    <button type="button" id="btn-borrar" class="clearf" title="Quita todos los filtros y selecciones">✕ Borrar filtros</button>
+  </div>
+
+  <p class="note" id="hint" style="margin:-6px 0 12px">Haz clic en una fila, barra, sector, punto o estado para filtrar todo el tablero. Clic de nuevo (o Esc) para quitar la selección.</p>
+  <div id="selbar"></div>
+
+  <div class="export">
+    <span>Informe en PDF:</span>
+    <button type="button" id="pdf-f" title="Incluye solo lo que ves ahora: filtros, rango de fechas y selecciones">⬇ Descargar PDF con filtros aplicados</button>
+    <button type="button" id="pdf-t" class="alt" title="Incluye todos los deportistas y todas las fechas">⬇ Descargar PDF sin filtros</button>
+  </div>
+
+  <section class="kpis">
+    <div class="kpi"><span>Total de deportistas</span><b id="k-atletas">–</b></div>
+    <div class="kpi"><span>Sesiones registradas</span><b id="k-sesiones">–</b></div>
+    <div class="kpi k2" id="kc-riesgo" tabindex="0" role="button" title="Clic para filtrar los atletas en peligro"><span>Atletas en peligro</span><b id="k-riesgo">–</b><small id="k-prec"></small></div>
+    <div class="kpi"><span>Plan Estrellas</span><b class="sm" id="k-plan">–</b></div>
+    <div class="kpi"><span>Metodólogo a cargo</span><b class="sm" id="k-metodologo">–</b></div>
+  </section>
+
+  <section class="panel">
+    <h2>Datos generales del entrenamiento</h2>
+    <div class="legend" id="legend"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th data-k="atleta">Atleta</th>
+          <th data-k="carga" class="n">Carga de la sesión</th>
+          <th data-k="mono" class="n">Monotonía</th>
+          <th data-k="strain" class="n">Tensión (Strain)</th>
+          <th data-k="estado">Estado</th>
+          <th data-k="asistencia" class="n">Asistencia</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="note" id="ventana"></p>
+
+  </section>
+
+  <section class="grid3">
+    <div class="panel"><h2>Tipo de sesión</h2><div class="slicer" id="s-tipo"></div></div>
+    <div class="panel"><h2>Tiempo de sesión (minutos)</h2><div class="chartbox"><canvas id="c-tiempo"></canvas></div></div>
+    <div class="panel"><h2>Autoevaluación de desempeño</h2><div class="chartbox"><canvas id="c-auto"></canvas></div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Detalle de sesiones por día y deportista</h2>
+    <div class="tools">
+      <span class="note" id="det-count" style="margin:0"></span>
+      <label><input type="checkbox" id="f-multi"> Mostrar solo días con 2 o más sesiones</label>
+    </div>
+    <div class="tablewrap">
+      <table style="min-width:1060px">
+        <thead><tr><th>Fecha</th><th>Deportista</th><th>Sesión</th><th>Entrenador</th><th>Tipo de sesión</th><th class="n">Duración (min)</th><th class="n">Carga de la sesión</th><th class="n">Autoevaluación</th><th>Observaciones</th></tr></thead>
+        <tbody id="det-body"></tbody>
+      </table>
+    </div>
+    <p class="note"><button id="det-more" type="button" style="display:none;margin:0 10px 0 0">Mostrar más</button>
+</p>
+  </section>
+
+  <section class="panel nota">
+    <h2>Nota:</h2>
+    <ol>
+      <li><b>Monotonía &lt; 1.5 (Óptima / Segura):</b> Existe una variabilidad adecuada en la carga semanal. El cuerpo recibe estímulos variados y cuenta con fluctuaciones claras entre estímulo y recuperación.</li>
+      <li><b>Monotonía entre 1.5 y 2.0 (Zona de Alerta):</b> Indica poca variabilidad entre las sesiones. Las cargas se vuelven planas.</li>
+      <li><b>Monotonía &gt; 2.0 (Zona de Riesgo Crítico):</b> Foster y estudios posteriores asociaron valores superiores a 2.0 (especialmente cuando coinciden con un Training Strain o Tensión alto) con un incremento drástico en el riesgo de:
+        <ul>
+          <li>Síndrome de sobreentrenamiento (overtraining)</li>
+          <li>Infecciones respiratorias agudas (baja en el sistema inmune)</li>
+          <li>Lesiones musculares o por sobreuso</li>
+        </ul>
+      </li>
+    </ol>
+    <p class="fuente">Información extraída de Foster, C. (1998). Monitoring training in athletes with reference to overtraining syndrome. <i>Medicine &amp; Science in Sports &amp; Exercise, 30</i>(7), 1164–1168. <a href="https://doi.org/10.1097/00005768-199807000-00023" target="_blank" rel="noopener">https://doi.org/10.1097/00005768-199807000-00023</a></p>
+  </section>
+</main>
+<footer>
+  <div id="footer"></div>
+  <div class="devs">
+    <div class="logo" data-logo="dev1"></div>
+    <div class="logo" data-logo="dev2"></div>
+    <p><b>Desarrollado por:</b> Jeferson Santos - Metodólogo Rendimiento Deportivo - Kevin Manosalva - Ingeniero Observatorio del Deporte de Cundinamarca</p>
+  </div>
+</footer>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN: edita solo este bloque
+   ===================================================================== */
+const CONFIG = {
+  // Una fuente por metodólogo. "columnas" (opcional) sobreescribe palabras clave de COLUMNAS solo para esa hoja.
+  FUENTES: [
+    { nombre: "PABLO HUERTAS",   id: "1ANnrdJLek0iAQQbSJTvSCC6qNyO91XdYiLoSq3hncCQ" },
+    { nombre: "GLORIA MUÑOZ",    id: "1gCjvvkV2hkk64BCC-w2MT00gS4fvcpN4unekc9Jpev8",
+      columnas: { entrenador: ["=entrenador que diseno"] } },   // en esta hoja el entrenador es quien diseñó la sesión
+    { nombre: "DIEGO ZARAZA",    id: "1PpdcZXQsZ3icz85WBKnVJmw_IsfVsjbxCa4v4qI-ijc" },
+    { nombre: "JOSE PERALTA",    id: "137qotJPLsQ6OKpvt7bwCARSp-Qjvq4N9uEnGgLP1fhE" },
+    { nombre: "TITO",            id: "11ZtF7Zx5Ldl-3pUNS9CKxjE_cg3iBVrMQaprrZ7ZfV8" },
+    { nombre: "JEFERSON SANTOS", id: "1yCAR94EThkbm0H620uViPW6WmQfHlp89qQbBBJW8jfc" }
+  ],
+  PESTANAS: ["Base Maestra", "Respuestas de formulario 1"], // se intenta en este orden; usa la primera que funcione
+  // Palabras clave para reconocer cada columna por su encabezado (sin tildes, en minúscula). Con "=" al inicio, el encabezado debe ser exactamente ese texto.
+  // Se usa la primera columna cuyo encabezado contenga alguna de estas palabras, en el orden escrito.
+  COLUMNAS: {
+    fecha: ["marca temporal", "solo fecha", "fecha"],
+    atleta: ["deportista", "atleta"],
+    deporte: ["deporte que practica", "deporte"],
+    genero: ["genero"],
+    entrenador: ["=entrenador"],   // un solo campo de entrenador
+    plan: ["plan estrellas"],
+    tipo: ["=tipo de sesion", "tipo de sesion"],
+    minutos: ["=duracion de la sesion", "duracion", "minutos"],
+    rpe: ["percepcion del esfuerzo", "rpe"],
+    auto: ["auto evaluacion", "autoevaluacion"],
+    carga: ["carga de la sesion"],   // si existe y tiene valor se usa; si no, minutos × RPE
+    obs: ["=obsevaciones", "=observaciones"],
+    asistio: ["asistio", "asistencia"] // opcional: sin esta columna cada fila cuenta como una sesión asistida
+  },
+  // Logos: pon la ruta de cada imagen (por ejemplo una carpeta "logos" junto a este archivo), una URL pública o una imagen en base64.
+  // Si el campo queda vacío (o la imagen no carga) se muestra un recuadro para ubicar el logo.
+  LOGOS: {
+    observatorio:    { etiqueta: "Logo Observatorio del Deporte de Cundinamarca", src: "logos/observatorio.png" },
+    altorendimiento: { etiqueta: "Logo Alto Rendimiento", src: "logos/alto-rendimiento.png" },
+    dev1:            { etiqueta: "Logo Jeferson Santos", src: "logos/jeferson-santos.png" },
+    dev2:            { etiqueta: "Logo Kevin Manosalva", src: "logos/kevin-manosalva.png" }
+  },
+  VENTANA_DIAS: 0,             // 0 = todo el periodo filtrado (como el tablero de referencia); 7 = última semana
+  MONO_ALERTA: 1.5,            // monotonía desde la cual hay precaución (amarillo)
+  MONO_PELIGRO: 2,             // monotonía desde la cual hay peligro (rojo)
+  UMBRAL_STRAIN: 4000,         // tensión desde la cual el estado es PRECAUCIÓN
+  REFRESCO_MIN: 5
+};
+/* ===================================================================== */
+
+const $ = id => document.getElementById(id);
+const MESES = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,sept:8,oct:9,nov:10,dic:11};
+let ROWS = [], charts = {}, sortKey = "carga", sortDir = -1, TABLE = [];
+
+/* ---------- Lectura de la hoja (endpoint gviz, formato CSV) ---------- */
+function parseCSV(t){
+  const out=[];let row=[],f="",q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(q){ if(c=='"'){ if(t[i+1]=='"'){f+='"';i++} else q=false } else f+=c }
+    else if(c=='"') q=true;
+    else if(c==','){row.push(f);f=""}
+    else if(c=='\n'){row.push(f);out.push(row);row=[];f=""}
+    else if(c!='\r') f+=c;
+  }
+  if(f.length||row.length){row.push(f);out.push(row)}
+  return out;
+}
+function parseFecha(s){
+  s=(s||"").trim().toLowerCase(); if(!s) return null;
+  let m;
+  if(/^\d{5}(\.\d+)?$/.test(s)) return new Date(1899,11,30+Math.floor(+s)); // número de serie de Sheets
+  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)) return new Date(+m[1],m[2]-1,+m[3]);
+  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/)) return new Date(+m[3],m[2]-1,+m[1]); // DD/MM/AAAA
+  if(m=s.match(/^(\d{1,2})\s+([a-zñ]+)\.?\s+(\d{4})/)){ const mm=MESES[m[2].slice(0,4)] ?? MESES[m[2].slice(0,3)]; if(mm!==undefined) return new Date(+m[3],mm,+m[1]); }
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+const num = v => { const n=parseFloat(String(v||"").replace(/\./g,"").replace(",",".")); return isNaN(n)?0:n };
+const numPlain = v => { const n=parseFloat(String(v||"").replace(",",".")); return isNaN(n)?0:n };
+const iso = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+
+const ENTR={};
+function canonEntrenador(v){ v=(v||"").replace(/\s+/g," ").trim(); if(!v) return ""; const k=nrm(v); return ENTR[k]??(ENTR[k]=v.toUpperCase()); }
+// Sheets puede devolver "1,350" (miles con coma): se respeta; en los demás casos la coma es decimal
+const cargaNum = v => { const t=String(v||"").trim(); return /^\d{1,3}(,\d{3})+$/.test(t) ? parseFloat(t.replace(/,/g,"")) : numPlain(t) };
+
+async function leer(src,tab){
+    const url=`https://docs.google.com/spreadsheets/d/${src.id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}&_=${Date.now()}`;
+    const r=await fetch(url); if(!r.ok) throw new Error("HTTP "+r.status);
+    const txt=await r.text();
+    if(/^\s*<(!doctype|html)/i.test(txt)) throw new Error("la hoja no está compartida como lector o la pestaña no existe");
+    const data=parseCSV(txt);
+    if(data.length<2) throw new Error("La pestaña está vacía");
+    const norm=t=>(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+    const head=data[0].map(norm), C={...CONFIG.COLUMNAS,...(src.columnas||{})}, idx={};
+    for(const k in C){ idx[k]=-1; for(const kw of C[k]){ const i=head.findIndex(h=>kw[0]==="="?h===kw.slice(1):h.includes(kw)); if(i>=0){idx[k]=i;break} } }
+    const faltan=["fecha","atleta"].filter(k=>idx[k]<0).concat(idx.carga<0?["minutos","rpe"].filter(k=>idx[k]<0):[]);
+    if(faltan.length) throw new Error("No encuentro las columnas: "+faltan.join(", ")+". Encabezados detectados: "+data[0].join(" | "));
+    const col=n=>head.indexOf(n);
+    const SES=[null,1,2,3,4].map(k=>k&&({tipo:col("tipo de sesion "+k),min:col("duracion de la sesion "+k),auto:col("auto sesion "+k),obs:col("observaciones de la sesion "+k),rpe:col("rpe sesion "+k)}));
+    const g=(row,k)=> idx[k]>=0 ? (row[idx[k]]||"").trim() : "";
+    const fechaAlt=row=>{ const i=head.findIndex(h=>h.includes("solo fecha")); return i>=0?row[i]:"" };
+    const rows=data.slice(1).map(row=>{
+      const fecha=parseFecha(g(row,"fecha"))||parseFecha(fechaAlt(row)); if(!fecha||!g(row,"atleta")) return null;
+      const min=numPlain(g(row,"minutos")), rpe=numPlain(g(row,"rpe")), asi=norm(g(row,"asistio"));
+      const cs=cargaNum(g(row,"carga")), carga=cs>0?cs:min*rpe;
+      let ses=[];
+      for(let k=1;k<=4;k++){
+        const t=row[SES[k].tipo]||"", m=numPlain(row[SES[k].min]), a=numPlain(row[SES[k].auto]);
+        if(SES[k].tipo>=0 && (t.trim()||m>0)) ses.push({tipo:t.trim(),min:m,auto:a,obs:(row[SES[k].obs]||"").trim(),rpe:numPlain(row[SES[k].rpe])});
+      }
+      if(!ses.length && (min>0 || carga>0 || g(row,"tipo"))) ses=[{tipo:g(row,"tipo"),min,auto:numPlain(g(row,"auto")),obs:g(row,"obs"),rpe:0}];
+      // carga por sesión: RPE propio si existe; si no, un solo valor del día (o reparto por duración si hay varias sesiones)
+      const tmin=ses.reduce((t,x)=>t+x.min,0);
+      ses.forEach(x=>{
+        if(x.rpe>0&&x.min>0){ x.carga=x.min*x.rpe; x.est=false; }
+        else if(ses.length===1){ x.carga=carga; x.est=false; }
+        else { x.carga=tmin>0?carga*x.min/tmin:carga/ses.length; x.est=true; }
+        if(!x.obs&&ses.length===1) x.obs=g(row,"obs");
+      });
+      return { fecha, atleta:g(row,"atleta"), deporte:g(row,"deporte"), genero:g(row,"genero"), entrenador:canonEntrenador(g(row,"entrenador")),
+        plan:g(row,"plan"), tipo:g(row,"tipo"), min, carga, ses,
+        asistio: idx.asistio<0 ? carga>0 : ["si","s","1","true","x"].includes(asi), metodologo:src.nombre };
+    }).filter(Boolean);
+    if(!rows.length) throw new Error("No se encontraron filas válidas (revisa fechas y nombres)");
+    return rows;
+}
+async function leerFuente(src){
+  const errores=[];
+  for(const tab of CONFIG.PESTANAS){
+    try{ const rows=await leer(src,tab); return {src,ok:true,tab,rows}; }
+    catch(e){ errores.push(`«${tab}»: ${e.message}`); }
+  }
+  return {src,ok:false,rows:[],error:errores.join(" | ")};
+}
+function conexiones(res){
+  $("conex").innerHTML=res.map(r=>r.ok
+    ? `<div class="cx ok"><b>✓ ${esc(r.src.nombre)}</b><small>${fmt(r.rows.length)} filas · pestaña «${esc(r.tab)}»</small></div>`
+    : `<div class="cx bad" title="${esc(r.error)}"><b>✗ ${esc(r.src.nombre)}</b><small>${esc(r.error.slice(0,140))}</small></div>`).join("");
+}
+async function cargar(){
+  $("msg").style.display="none";
+  $("status").firstChild.textContent="Actualizando… ";
+  const res=await Promise.all(CONFIG.FUENTES.map(leerFuente));
+  conexiones(res);
+  const bien=res.filter(r=>r.ok), mal=res.filter(r=>!r.ok);
+  if(mal.length){
+    $("msg").style.display="block";
+    $("msg").textContent="No se pudo leer: "+mal.map(r=>r.src.nombre).join(", ")+". Revisa que cada hoja esté compartida como «Cualquier persona con el enlace · Lector» y que tenga la pestaña «Base Maestra» o «Respuestas de formulario 1».";
+  }
+  if(!bien.length){ $("status").firstChild.textContent="Sin conexión "; return; }
+  ROWS=bien.flatMap(r=>r.rows);
+  iniciarFiltros(); render();
+  $("status").firstChild.textContent=`Actualizado ${new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"})} · ${bien.length} de ${res.length} hojas conectadas `;
+}
+
+/* ---------- Filtros ---------- */
+const FIL=[["metodologo","f-metodologo"],["atleta","f-atleta"],["deporte","f-deporte"],["genero","f-genero"],["entrenador","f-entrenador"],["plan","f-plan"]];
+function iniciarFiltros(){
+  // Filtros relacionados: las opciones de cada lista salen de los datos que cumplen TODOS los demás filtros (incluidos fechas y búsqueda)
+  const q=nrm($("f-buscar").value);
+  const d=$("f-desde").value?new Date($("f-desde").value+"T00:00"):null, h=$("f-hasta").value?new Date($("f-hasta").value+"T23:59"):null;
+  const cumple=(r,omitir)=>(!d||r.fecha>=d)&&(!h||r.fecha<=h)&&(!q||omitir==="buscar"||nrm(r.atleta).includes(q))&&FIL.every(([k,id])=>k===omitir||!$(id).value||r[k]===$(id).value);
+  for(let pasada=0;pasada<4;pasada++){
+    let cambio=false;
+    FIL.forEach(([k,id])=>{
+      const el=$(id), prev=el.value;
+      const vals=[...new Set(ROWS.filter(r=>cumple(r,k)).map(r=>r[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
+      el.innerHTML='<option value="">Todos</option>'+vals.map(v=>`<option>${v.replace(/</g,"&lt;")}</option>`).join("");
+      el.value=vals.includes(prev)?prev:"";
+      if(el.value!==prev) cambio=true;
+    });
+    if(!cambio) break;
+  }
+  $("dl-atletas").innerHTML=[...new Set(ROWS.filter(r=>cumple(r,"buscar")).map(r=>r.atleta).filter(Boolean))].sort().map(v=>`<option value="${v.replace(/"/g,"&quot;").replace(/</g,"&lt;")}">`).join("");
+  if(!$("f-desde").value && ROWS.length){
+    const f=ROWS.map(r=>+r.fecha); $("f-desde").value=iso(new Date(Math.min(...f))); $("f-hasta").value=iso(new Date(Math.max(...f)));
+  }
+}
+function borrarFiltros(){
+  FIL.forEach(([k,id])=>$(id).value="");
+  $("f-buscar").value=""; $("f-multi").checked=false;
+  $("f-desde").value=""; $("f-hasta").value="";
+  Object.keys(SEL).forEach(k=>SEL[k]=null);
+  iniciarFiltros(); detMax=60; render();
+}
+const nrm=t=>(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+function filtrar(){
+  const q=nrm($("f-buscar").value);
+  const d=$("f-desde").value?new Date($("f-desde").value+"T00:00"):null, h=$("f-hasta").value?new Date($("f-hasta").value+"T23:59"):null;
+  return ROWS.filter(r=>FIL.every(([k,id])=>!$(id).value||r[k]===$(id).value)&&(!q||nrm(r.atleta).includes(q))&&(!d||r.fecha>=d)&&(!h||r.fecha<=h));
+}
+
+/* ---------- Selección cruzada ---------- */
+const SEL={atleta:null,estado:null,tipo:null,min:null,fecha:null};
+const SELN={atleta:"Deportista",estado:"Estado",tipo:"Tipo de sesión",min:"Duración",fecha:"Fecha"};
+const ESTN={OPTIMO:"Óptimo",PRECAUCION:"Precaución",PELIGRO:"Peligro"}, ESTU={OPTIMO:"ÓPTIMO",PRECAUCION:"PRECAUCIÓN",PELIGRO:"PELIGRO"};
+let ALLOW=null;
+function toggle(k,v){ SEL[k]=(SEL[k]===v)?null:v; detMax=60; setTimeout(render,0); }
+// filas filtradas por todas las selecciones, salvo las dimensiones en "ex" (así el gráfico clicado conserva todas sus categorías)
+function sub(base,ex){
+  const has=k=>ex.includes(k), anyS=(SEL.tipo&&!has("tipo"))||(SEL.min&&!has("min")), out=[];
+  for(const r of base){
+    if(SEL.atleta&&!has("atleta")&&r.atleta!==SEL.atleta) continue;
+    if(ALLOW&&!has("estado")&&!ALLOW.has(r.atleta)) continue;
+    if(SEL.fecha&&!has("fecha")&&iso(r.fecha)!==SEL.fecha) continue;
+    const ses=r.ses.filter(x=>(has("tipo")||!SEL.tipo||x.tipo===SEL.tipo)&&(has("min")||!SEL.min||x.min===SEL.min));
+    if(anyS&&!ses.length) continue;
+    out.push({...r,ses,sesAll:r.ses});
+  }
+  return out;
+}
+
+/* ---------- Cálculos (Foster) ---------- */
+function estadistica(arr){
+  const m=arr.reduce((a,b)=>a+b,0)/arr.length;
+  const sd=arr.length>1?Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1)):0;
+  return {m,sd};
+}
+function calcular(rows,base){
+  if(!rows.length) return [];
+  // Cada metodólogo tiene su propio periodo de seguimiento: la ventana de días se calcula con sus propias fechas
+  const ventanas={};
+  const ventana=m=>{
+    if(ventanas[m]) return ventanas[m];
+    let ref=base.filter(r=>r.metodologo===m); if(!ref.length) ref=rows.filter(r=>r.metodologo===m);
+    const fin=new Date(Math.max(...ref.map(r=>+r.fecha))); fin.setHours(0,0,0,0);
+    const ini=new Date(Math.min(...ref.map(r=>+r.fecha))); ini.setHours(0,0,0,0);
+    const n=CONFIG.VENTANA_DIAS>0?CONFIG.VENTANA_DIAS:Math.round((fin-ini)/864e5)+1;
+    return ventanas[m]=[...Array(n)].map((_,i)=>iso(new Date(fin.getFullYear(),fin.getMonth(),fin.getDate()-(n-1-i))));
+  };
+  const por={};
+  rows.forEach(r=>{ (por[r.atleta]??=[]).push(r) });
+  return Object.entries(por).map(([atleta,rs])=>{
+    const dias=ventana(rs[0].metodologo);
+    const diario=Object.fromEntries(dias.map(d=>[d,0]));
+    rs.forEach(r=>{ const k=iso(r.fecha); if(k in diario) diario[k]+=r.carga });
+    const vals=dias.map(d=>diario[d]), carga=vals.reduce((a,b)=>a+b,0), {m,sd}=estadistica(vals);
+    const mono = carga===0 ? 0 : (sd===0 ? 99 : m/sd), strain=carga*mono, alta=strain>=CONFIG.UMBRAL_STRAIN;
+    // Semáforo: rojo = peligro (monotonía crítica) · amarillo = precaución (tensión muy alta o cargas planas) · verde = óptimo
+    const estado = mono>=CONFIG.MONO_PELIGRO ? "PELIGRO" : (alta||mono>=CONFIG.MONO_ALERTA) ? "PRECAUCION" : "OPTIMO";
+    const motivo = estado==="PELIGRO" ? " (monotonía crítica)" : alta ? " (tensión muy alta)" : mono>=CONFIG.MONO_ALERTA ? " (cargas planas)" : "";
+    return {atleta,carga,mono,strain,estado,motivo,asistencia:rs.filter(r=>r.asistio).length};
+  });
+}
+
+/* ---------- Render ---------- */
+const fmt=(n,d=0)=>n.toLocaleString("es-CO",{minimumFractionDigits:d,maximumFractionDigits:d});
+function metodologoTxt(rows){ const m=[...new Set(rows.map(r=>r.metodologo).filter(Boolean))]; return m.length===0?"–":m.length===1?m[0]:"Todos ("+m.length+")"; }
+function render(){
+  const base=filtrar(); ALLOW=null;
+  TABLE=calcular(sub(base,["atleta","estado"]),base);
+  if(SEL.estado) ALLOW=new Set(TABLE.filter(t=>t.estado===SEL.estado).map(t=>t.atleta));
+  const rows=sub(base,[]);
+  const T=TABLE.filter(t=>!SEL.atleta||t.atleta===SEL.atleta), cnt=e=>T.filter(t=>t.estado===e).length;
+  const nA=new Set(rows.map(r=>r.atleta)).size;
+  $("k-atletas").textContent=nA;
+  $("k-sesiones").textContent=fmt(rows.reduce((n,r)=>n+(r.ses.length||(r.asistio?1:0)),0));
+  $("k-riesgo").textContent=cnt("PELIGRO");
+  $("k-prec").textContent=cnt("PRECAUCION")+" en precaución · "+cnt("OPTIMO")+" óptimos";
+  $("kc-riesgo").classList.toggle("on",SEL.estado==="PELIGRO");
+  const pl=new Set(); rows.forEach(r=>{ if(/^s[ií]$/i.test(r.plan)) pl.add(r.atleta) });
+  $("k-plan").textContent=pl.size+" de "+nA;
+  $("k-metodologo").textContent=metodologoTxt(rows);
+  $("ventana").textContent=`Carga, monotonía y tensión se calculan sobre ${CONFIG.VENTANA_DIAS>0?"los últimos "+CONFIG.VENTANA_DIAS+" días":"todo"} el periodo filtrado de cada metodólogo (días sin entrenar cuentan como 0). Verde: óptimo · Amarillo: precaución (tensión ≥ ${fmt(CONFIG.UMBRAL_STRAIN)} o monotonía ≥ ${CONFIG.MONO_ALERTA}) · Rojo: peligro (monotonía ≥ ${CONFIG.MONO_PELIGRO}).`;
+  selbar(); tabla(); graficas(base); detalle(rows);
+}
+function selbar(){
+  const e=Object.entries(SEL).filter(([k,v])=>v!==null);
+  const txt=(k,v)=>k==="fecha"?new Date(v+"T00:00").toLocaleDateString("es-CO",{day:"numeric",month:"short"}):k==="min"?v+" min":k==="estado"?ESTN[v]:v;
+  $("selbar").innerHTML=e.length?"<span>Selección activa:</span>"+e.map(([k,v])=>`<button type="button" class="chip2" data-k="${k}" title="Quitar">${SELN[k]}: ${esc(txt(k,v))} ✕</button>`).join("")+'<button type="button" id="clear">Limpiar todo</button>':"";
+}
+function tabla(){
+  const cnt=e=>TABLE.filter(t=>t.estado===e).length;
+  $("legend").innerHTML=["OPTIMO","PRECAUCION","PELIGRO"].map(e=>`<button type="button" class="${e}${SEL.estado===e?" on":""}" data-e="${e}">${ESTN[e]} · ${cnt(e)}</button>`).join("");
+  const t=TABLE.filter(r=>!SEL.estado||r.estado===SEL.estado).sort((a,b)=>{const x=a[sortKey],y=b[sortKey];return (typeof x==="string"?x.localeCompare(y):x-y)*sortDir});
+  $("tbody").innerHTML=t.length?t.map(r=>`<tr data-a="${esc(r.atleta)}" class="${SEL.atleta===r.atleta?"sel":SEL.atleta?"dim":""}"><td>${esc(r.atleta)}</td><td class="n">${fmt(r.carga)}</td><td class="n">${r.mono>=99?"≥ 99":fmt(r.mono,2)}</td><td class="n">${fmt(r.strain,2)}</td>
+  <td><span class="badge ${r.estado}">${ESTU[r.estado]}${r.motivo}</span></td><td class="n">${r.asistencia}</td></tr>`).join("")
+  :`<tr><td colspan="6">No hay datos con los filtros elegidos. Amplía el rango de fechas o quita algún filtro.</td></tr>`;
+}
+function dibujar(id,cfg){
+  charts[id]?.destroy();
+  const css=getComputedStyle(document.documentElement);
+  Chart.defaults.color=css.getPropertyValue("--muted").trim(); Chart.defaults.font.family="Barlow";
+  cfg.options.animation={duration:200};
+  cfg.options.onHover=(e,els)=>{ e.native.target.style.cursor=els.length?"pointer":"default" };
+  charts[id]=new Chart($(id),cfg);
+}
+function graficas(base){
+  const css=getComputedStyle(document.documentElement), brand=css.getPropertyValue("--brand").trim(), line=css.getPropertyValue("--line").trim(), gold=css.getPropertyValue("--gold").trim(), red=css.getPropertyValue("--red").trim();
+  const opt={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  const col=(c,on,any)=>any?(on?gold:c+"55"):c;
+  const idx=(ch,e,x)=>{const el=ch.getElementsAtEventForMode(e,"nearest",x?{intersect:false,axis:"x"}:{intersect:true},true);return el.length?el[0].index:-1};
+  const ses=ex=>sub(base,ex).flatMap(r=>r.ses.map(x=>({...x,fecha:r.fecha})));
+  // Tipo de sesión (segmentador con texto completo)
+  const tipos={}; ses(["tipo"]).filter(x=>x.tipo).forEach(x=>tipos[x.tipo]=(tipos[x.tipo]||0)+1);
+  const te=Object.entries(tipos).sort((a,b)=>b[1]-a[1]), mx=te.length?te[0][1]:1, sl=$("s-tipo"), st=sl.scrollTop;
+  sl.innerHTML=te.map(([t,n])=>`<button type="button" class="sl-item${SEL.tipo===t?" on":SEL.tipo?" dim":""}" data-t="${esc(t)}" style="--w:${(n/mx*100).toFixed(1)}%"><span>${esc(t)}</span><b>${n}</b></button>`).join("")||'<p class="note" style="margin:6px">Sin datos con los filtros elegidos.</p>';
+  sl.scrollTop=st;
+  // Tiempo de sesión
+  const tm={}; ses(["min"]).filter(x=>x.min>0).forEach(x=>tm[x.min]=(tm[x.min]||0)+1);
+  const tk=Object.keys(tm).sort((a,b)=>tm[b]-tm[a]), top=tk.slice(0,8);
+  if(SEL.min&&tm[SEL.min]&&!top.includes(String(SEL.min))) top.push(String(SEL.min));
+  const otros=tk.filter(k=>!top.includes(k)).reduce((s,k)=>s+tm[k],0);
+  const pal=["#1c6ea4","#d8a01d","#c8102e","#6cb4e4","#8a5d00","#14263a","#e3857a","#9bc9e8","#8a948f"];
+  const pick=i=>{ if(top[i]) toggle("min",+top[i]) };
+  dibujar("c-tiempo",{type:"doughnut",data:{labels:[...top.map(k=>k+" min"),...(otros?["Otros"]:[])],
+    datasets:[{data:[...top.map(k=>tm[k]),...(otros?[otros]:[])],backgroundColor:[...top,"otros"].map((k,i)=>col(pal[i%pal.length],+k===SEL.min,SEL.min)),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:"right",onClick:(e,it)=>pick(it.index)}},onClick:(e,_,ch)=>{const i=idx(ch,e);if(i>=0)pick(i)}}});
+  // Autoevaluación promedio por fecha
+  const au={}; ses(["fecha"]).filter(x=>x.auto>0).forEach(x=>{const k=iso(x.fecha);(au[k]??=[]).push(x.auto)});
+  const ak=Object.keys(au).sort();
+  dibujar("c-auto",{type:"line",data:{labels:ak.map(k=>new Date(k+"T00:00").toLocaleDateString("es-CO",{day:"numeric",month:"short"})),
+    datasets:[{data:ak.map(k=>au[k].reduce((a,b)=>a+b,0)/au[k].length),borderColor:gold,backgroundColor:gold,tension:.25,
+      pointRadius:ak.map(k=>SEL.fecha===k?8:3),pointBackgroundColor:ak.map(k=>SEL.fecha===k?red:gold)}]},
+    options:{...opt,scales:{y:{min:0,max:5,grid:{color:line}},x:{grid:{display:false}}},onClick:(e,_,ch)=>{const i=idx(ch,e,true);if(i>=0)toggle("fecha",ak[i])}}});
+}
+
+/* ---------- Detalle de sesiones por día ---------- */
+let detMax=60;
+const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function detalle(rows){
+  let R=rows.filter(r=>r.ses.length>0);
+  if($("f-multi").checked) R=R.filter(r=>r.ses.length>=2);
+  R=R.sort((a,b)=>b.fecha-a.fecha||a.atleta.localeCompare(b.atleta));
+  const vis=R.slice(0,detMax);
+  $("det-count").textContent=`${fmt(R.length)} días con entrenamiento · ${fmt(R.reduce((n,r)=>n+r.ses.length,0))} sesiones`;
+  $("det-more").style.display=R.length>detMax?"inline-block":"none";
+  let prevDay=null, dayIdx=-1;
+  $("det-body").innerHTML=vis.map(r=>{
+    const n=r.ses.length, key=iso(r.fecha), nuevoDia=key!==prevDay;
+    if(nuevoDia){ dayIdx++; prevDay=key; }
+    const par="d"+(dayIdx%2);
+    const f=r.fecha.toLocaleDateString("es-CO",{weekday:"short",day:"2-digit",month:"short",year:"numeric"});
+    const filas=r.ses.map((x,i)=>{
+      const cls=par+" "+(i===0?(nuevoDia?"first newday":"first newath"):"sub");
+      return `<tr class="${cls}"><td class="dia">${i===0?esc(f):""}</td><td class="dep">${i===0?esc(r.atleta):""}</td>
+      <td><span class="chip">${i+1} de ${n}</span></td><td>${esc(r.entrenador)||"–"}</td><td>${esc(x.tipo)||"–"}</td>
+      <td class="n">${fmt(x.min)}</td><td class="n">${x.est?"≈ ":""}${fmt(x.carga)}</td>
+      <td class="n">${x.auto>0?fmt(x.auto,x.auto%1?1:0):"–"}</td><td class="obs">${esc(x.obs)||"–"}</td></tr>`}).join("");
+    const tot=n>1&&n===r.sesAll.length?`<tr class="tot ${par}"><td></td><td colspan="4">Total del día · ${n} sesiones</td><td class="n">${fmt(r.ses.reduce((t,x)=>t+x.min,0))}</td><td class="n">${fmt(r.carga)}</td><td></td><td></td></tr>`:"";
+    return filas+tot;
+  }).join("")||`<tr><td colspan="9">No hay sesiones con los filtros elegidos.</td></tr>`;
+}
+
+/* ---------- Informe en PDF ---------- */
+function descargarPDF(conF){
+  if(!ROWS.length){ alert("Aún no hay datos cargados."); return; }
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ alert("No se pudo cargar la librería de PDF. Revisa tu conexión a internet y recarga la página."); return; }
+  // El PDF usa la fuente estándar: se quitan símbolos que no soporta
+  const T=s=>String(s==null?"":s).replace(/≥/g,">=").replace(/≈/g,"~").replace(/[^\x09\x0A\x20-\x7E\xA0-\xFF\u2013\u2014\u2018\u2019\u201C\u201D\u2022]/g,"");
+  let rows,tab,desc;
+  if(conF){
+    rows=sub(filtrar(),[]);
+    tab=TABLE.filter(t=>(!SEL.atleta||t.atleta===SEL.atleta)&&(!SEL.estado||t.estado===SEL.estado));
+    const labs={atleta:"Deportista",deporte:"Deporte",genero:"Género",metodologo:"Metodólogo a cargo",entrenador:"Entrenador",plan:"Plan Estrellas"};
+    const p=FIL.filter(([k,id])=>$(id).value).map(([k,id])=>labs[k]+": "+$(id).value);
+    if($("f-buscar").value.trim()) p.push("Búsqueda de deportista: "+$("f-buscar").value.trim());
+    if($("f-desde").value||$("f-hasta").value) p.push("Periodo: "+$("f-desde").value+" a "+$("f-hasta").value);
+    Object.entries(SEL).filter(([k,v])=>v!==null).forEach(([k,v])=>p.push(SELN[k]+": "+(k==="estado"?ESTN[v]:k==="min"?v+" min":k==="fecha"?v:v)));
+    if($("f-multi").checked) p.push("Solo días con 2 o más sesiones");
+    desc="Filtros aplicados -> "+p.join(" | ");
+  }else{
+    rows=ROWS.map(r=>({...r,sesAll:r.ses}));
+    tab=calcular(rows,rows);
+    const f=ROWS.map(r=>+r.fecha);
+    desc="Sin filtros (todos los deportistas) | Periodo: "+iso(new Date(Math.min(...f)))+" a "+iso(new Date(Math.max(...f)));
+  }
+  tab=[...tab].sort((a,b)=>{const x=a[sortKey],y=b[sortKey];return (typeof x==="string"?x.localeCompare(y):x-y)*sortDir});
+  const cnt=e=>tab.filter(t=>t.estado===e).length;
+  const nA=new Set(rows.map(r=>r.atleta)).size;
+  const nS=rows.reduce((n,r)=>n+(r.ses.length||(r.asistio?1:0)),0);
+  const pl=new Set(); rows.forEach(r=>{ if(/^s[ií]$/i.test(r.plan)) pl.add(r.atleta) });
+
+  const doc=new window.jspdf.jsPDF({orientation:"landscape",unit:"pt",format:"a4"});
+  const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36;
+  // Encabezado
+  doc.setFillColor(28,110,164); doc.rect(0,0,W,66,"F");
+  doc.setFillColor(108,180,228); doc.rect(0,66,W/3,5,"F");
+  doc.setFillColor(216,160,29); doc.rect(W/3,66,W/3,5,"F");
+  doc.setFillColor(200,16,46); doc.rect(2*W/3,66,W/3,5,"F");
+  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(20);
+  doc.text("Monitoreo selecciones Cundinamarca",M,32);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10.5);
+  doc.text(T("Seguimiento y control del entrenamiento · "+(conF?"Informe con filtros aplicados":"Informe completo, sin filtros")),M,50);
+  doc.setFontSize(9); doc.text("Generado: "+new Date().toLocaleString("es-CO"),W-M,50,{align:"right"});
+  doc.setTextColor(20,38,58); doc.setFontSize(9);
+  const dl=doc.splitTextToSize(T(desc),W-2*M); doc.text(dl,M,90);
+  let y=90+dl.length*11+6;
+
+  const sec=(t)=>{ if(y>H-120){ doc.addPage(); y=40; } doc.setFont("helvetica","bold"); doc.setFontSize(13); doc.setTextColor(28,110,164); doc.text(T(t),M,y); y+=8; };
+  const base={theme:"grid",margin:{left:M,right:M},styles:{fontSize:8.5,cellPadding:3,lineColor:[214,222,231],lineWidth:.5,textColor:[20,38,58]},headStyles:{fillColor:[28,110,164],textColor:255,fontStyle:"bold"}};
+
+  // Resumen
+  doc.autoTable({...base,startY:y,head:[["Deportistas","Sesiones registradas","Atletas en peligro","En precaución","Óptimos","Plan Estrellas","Metodólogo a cargo"].map(T)],
+    body:[[nA,fmt(nS),cnt("PELIGRO"),cnt("PRECAUCION"),cnt("OPTIMO"),pl.size+" de "+nA,T(metodologoTxt(rows))]],
+    styles:{...base.styles,fontSize:11,halign:"center",fontStyle:"bold"}});
+  y=doc.lastAutoTable.finalY+20;
+
+  // Datos generales
+  sec("Datos generales del entrenamiento");
+  const col={OPTIMO:{f:[220,243,226],t:[20,108,46]},PRECAUCION:{f:[253,238,166],t:[122,82,0]},PELIGRO:{f:[251,225,229],t:[176,15,40]}};
+  doc.autoTable({...base,startY:y+4,head:[["Atleta","Carga de la sesión","Monotonía","Tensión (Strain)","Estado","Asistencia"].map(T)],
+    body:tab.map(r=>[T(r.atleta),fmt(r.carga),r.mono>=99?">= 99":fmt(r.mono,2),fmt(r.strain,2),T(ESTU[r.estado]+r.motivo),r.asistencia]),
+    columnStyles:{1:{halign:"right"},2:{halign:"right"},3:{halign:"right"},5:{halign:"right"}},
+    didParseCell:d=>{ if(d.section==="body"&&d.column.index===4){ const e=tab[d.row.index].estado; d.cell.styles.fillColor=col[e].f; d.cell.styles.textColor=col[e].t; d.cell.styles.fontStyle="bold"; } }});
+  y=doc.lastAutoTable.finalY+8;
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(90,107,125);
+  const nt=doc.splitTextToSize(T(`Carga, monotonía y tensión se calculan sobre todo el periodo del informe (días sin entrenar cuentan como 0). Verde: óptimo | Amarillo: precaución (tensión >= ${fmt(CONFIG.UMBRAL_STRAIN)} o monotonía >= ${CONFIG.MONO_ALERTA}) | Rojo: peligro (monotonía >= ${CONFIG.MONO_PELIGRO}).`),W-2*M);
+  doc.text(nt,M,y+4); y+=nt.length*10+18;
+
+  // Tipo de sesión
+  const tipos={}; rows.forEach(r=>r.ses.forEach(x=>{ if(x.tipo) tipos[x.tipo]=(tipos[x.tipo]||0)+1; }));
+  const te=Object.entries(tipos).sort((a,b)=>b[1]-a[1]), totT=te.reduce((s,e)=>s+e[1],0)||1;
+  if(te.length){
+    sec("Tipo de sesión");
+    doc.autoTable({...base,startY:y+4,head:[["Tipo de sesión","Sesiones","% del total"].map(T)],
+      body:te.map(([t,n])=>[T(t),n,fmt(n/totT*100,1)+" %"]),tableWidth:420,
+      columnStyles:{1:{halign:"right"},2:{halign:"right"}}});
+    y=doc.lastAutoTable.finalY+20;
+  }
+
+  // Detalle
+  let R=rows.filter(r=>r.ses.length>0);
+  if(conF&&$("f-multi").checked) R=R.filter(r=>r.ses.length>=2);
+  R=[...R].sort((a,b)=>b.fecha-a.fecha||a.atleta.localeCompare(b.atleta));
+  const body=[],dia=[]; let pd=null,di=-1;
+  R.forEach(r=>{
+    const k=iso(r.fecha); if(k!==pd){ di++; pd=k; }
+    const f=r.fecha.toLocaleDateString("es-CO",{day:"2-digit",month:"2-digit",year:"numeric"});
+    r.ses.forEach((x,i)=>{ body.push([f,T(r.atleta),(i+1)+" de "+r.ses.length,T(r.entrenador)||"-",T(x.tipo)||"-",fmt(x.min),(x.est?"~ ":"")+fmt(x.carga),x.auto>0?fmt(x.auto,x.auto%1?1:0):"-",T(x.obs)||"-"]); dia.push(di); });
+  });
+  doc.addPage(); y=40;
+  sec("Detalle de sesiones por día y deportista");
+  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(90,107,125);
+  doc.text(T(`${fmt(R.length)} días con entrenamiento · ${fmt(body.length)} sesiones`),M,y+8);
+  doc.autoTable({...base,startY:y+16,styles:{...base.styles,fontSize:8,cellPadding:2.5},
+    head:[["Fecha","Deportista","Sesión","Entrenador","Tipo de sesión","Duración (min)","Carga","Autoeval.","Observaciones"].map(T)],
+    body,
+    columnStyles:{0:{cellWidth:54,fontStyle:"bold"},1:{cellWidth:100,fontStyle:"bold"},2:{cellWidth:36},3:{cellWidth:120},4:{cellWidth:95},5:{cellWidth:42,halign:"right"},6:{cellWidth:42,halign:"right"},7:{cellWidth:42,halign:"right"}},
+    didParseCell:d=>{ if(d.section==="body"&&dia[d.row.index]%2===1) d.cell.styles.fillColor=[226,238,248]; },
+    didDrawCell:d=>{ if(d.section==="body"&&d.column.index===0&&d.row.index>0&&dia[d.row.index]!==dia[d.row.index-1]){ doc.setDrawColor(28,110,164); doc.setLineWidth(1.5); doc.line(M,d.cell.y,W-M,d.cell.y); } }});
+
+  // Nota y pie de página
+  y=doc.lastAutoTable.finalY+14; if(y>H-70){ doc.addPage(); y=40; }
+  doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(28,110,164); doc.text("Nota",M,y);
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(90,107,125);
+  doc.text(doc.splitTextToSize(T("Monotonía < 1.5: óptima / segura. Entre 1.5 y 2.0: zona de alerta (cargas planas). > 2.0: zona de riesgo crítico (sobreentrenamiento, infecciones respiratorias, lesiones por sobreuso). Fuente: Foster, C. (1998). Monitoring training in athletes with reference to overtraining syndrome. Medicine & Science in Sports & Exercise, 30(7), 1164–1168. https://doi.org/10.1097/00005768-199807000-00023"),W-2*M),M,y+12);
+  const n=doc.getNumberOfPages();
+  for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFontSize(8); doc.setTextColor(120,130,140);
+    doc.text(T("Monitoreo selecciones Cundinamarca · Observatorio del Deporte de Cundinamarca"),M,H-16);
+    doc.text("Página "+i+" de "+n,W-M,H-16,{align:"right"}); }
+  doc.save("informe-monitoreo-"+(conF?"con-filtros":"sin-filtros")+"-"+iso(new Date())+".pdf");
+}
+
+/* ---------- Logos ---------- */
+function iniciarLogos(){
+  document.querySelectorAll(".logo[data-logo]").forEach(box=>{
+    const c=CONFIG.LOGOS[box.dataset.logo]||{};
+    box.textContent=c.etiqueta||"Logo";
+    box.title=c.etiqueta||"";
+    if(!c.src) return;
+    const img=new Image(); img.alt=c.etiqueta||"Logo";
+    img.onload=()=>{ box.textContent=""; box.classList.add("has-img"); box.appendChild(img); };
+    img.src=c.src;
+  });
+}
+
+/* ---------- Eventos ---------- */
+[...FIL.map(f=>f[1]),"f-desde","f-hasta","f-multi"].forEach(id=>$(id).addEventListener("change",()=>{
+  if(id==="f-atleta") SEL.atleta=null;
+  iniciarFiltros();   // recalcula las opciones de las demás listas según lo elegido
+  detMax=60;render();
+}));
+$("f-buscar").addEventListener("input",()=>{iniciarFiltros();detMax=60;render()});
+$("btn-borrar").addEventListener("click",borrarFiltros);
+$("det-more").addEventListener("click",()=>{detMax+=60;render()});
+document.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{
+  const k=th.dataset.k; sortDir=(sortKey===k)?-sortDir:-1; sortKey=k; tabla();
+}));
+$("refresh").addEventListener("click",cargar);
+[["pdf-f",true],["pdf-t",false]].forEach(([id,f])=>$(id).addEventListener("click",e=>{
+  const b=e.currentTarget; b.disabled=true;
+  setTimeout(()=>{ try{ descargarPDF(f) }catch(err){ console.error(err); alert("No se pudo generar el PDF: "+err.message) } b.disabled=false; },30);
+}));
+$("tbody").addEventListener("click",e=>{const tr=e.target.closest("tr[data-a]"); if(tr) toggle("atleta",tr.dataset.a)});
+$("s-tipo").addEventListener("click",e=>{const b=e.target.closest("button[data-t]"); if(b) toggle("tipo",b.dataset.t)});
+$("legend").addEventListener("click",e=>{const b=e.target.closest("button[data-e]"); if(b) toggle("estado",b.dataset.e)});
+$("kc-riesgo").addEventListener("click",()=>toggle("estado","PELIGRO"));
+$("kc-riesgo").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle("estado","PELIGRO")}});
+$("selbar").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; if(b.id==="clear") Object.keys(SEL).forEach(k=>SEL[k]=null); else SEL[b.dataset.k]=null; render()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){Object.keys(SEL).forEach(k=>SEL[k]=null);render()}});
+$("footer").textContent="Datos leídos en vivo desde Google Sheets · se actualizan cada "+CONFIG.REFRESCO_MIN+" min";
+iniciarLogos(); cargar(); setInterval(cargar,CONFIG.REFRESCO_MIN*60000);
+</script>
+</body>
+</html>
